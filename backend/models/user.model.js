@@ -1,33 +1,76 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+SALT_WORK_FACTOR = 10;
 
 const Schema = mongoose.Schema;
 
-const userSchema = new Schema(
-  {
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      minlength: 3
-    },
-    email: {
-      type: String,
-      lowercase: true,
-      required: true,
-      unique: true,
-      index: true
-    },
-    password: {
-      type: String,
-      required: true
-    }
+const UserSchema = new Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    minlength: 3
   },
-  {
-    timestamps: true
+  email: {
+    type: String,
+    match: [/\S+@\S+\.\S+/, "is invalid"],
+    lowercase: true,
+    required: true,
+    unique: true,
+    index: true
+  },
+  password: {
+    type: String,
+    required: true
   }
-);
+});
 
-const User = mongoose.model("User", userSchema);
+var uniqueValidator = require("mongoose-unique-validator");
+UserSchema.plugin(uniqueValidator, { message: "is already taken." });
+
+UserSchema.pre("save", function(next) {
+  var user = this;
+  if (!user.isModified("password")) return next();
+
+  bcrypt.genSalt(SALT_WORK_FACTOR, function(err, salt) {
+    if (err) return next(err);
+    bcrypt.hash(user.password, salt, function(err, hash) {
+      if (err) return next(err);
+      user.password = hash;
+      next();
+    });
+  });
+});
+
+UserSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+UserSchema.methods.generateJWT = function() {
+  var today = new Date();
+  var exp = new Date(today);
+  exp.setDate(today.getDate() + 60);
+
+  return jwt.sign(
+    {
+      id: this.id,
+      username: this.username,
+      exp: parseInt(exp.getTime() / 1000)
+    },
+    process.env.JWT_SECRET
+  );
+};
+
+UserSchema.methods.toAuthJSON = function() {
+  return {
+    username: this.username,
+    email: this.email,
+    token: this.generateJWT()
+  };
+};
+
+const User = mongoose.model("User", UserSchema);
 
 module.exports = User;
