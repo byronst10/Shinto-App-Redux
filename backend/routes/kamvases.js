@@ -41,8 +41,9 @@ router.route("/update/:id").post((req, res) => {
     .then(kamvas => {
       kamvas.username = req.body.username;
       kamvas.description = req.body.description;
-      kamvas.duration = Number(req.body.duration);
-      kamvas.date = Date.parse(req.body.date);
+      // kamvas.duration = Number(req.body.duration);
+      // kamvas.date = Date.parse(req.body.date);
+
       kamvas
         .save()
         .then(() => res.json("Kamvas updated!"))

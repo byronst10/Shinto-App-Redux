@@ -8,10 +8,10 @@ const kamvasSchema = new Schema(
     description: { type: String, required: true }
     // duration: { type: Number, required: true },
     // date: { type: Date, required: true }
-  },
-  {
-    timestamps: true
   }
+  // {
+  //   timestamps: true
+  // }
 );
 
 const Kamvas = mongoose.model("Kamvas", kamvasSchema);
